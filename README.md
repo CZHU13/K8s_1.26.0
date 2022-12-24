@@ -199,8 +199,8 @@ cat << /etc/docker/daemon.json >> EOF
 EOF
 ~~~
 
-~~~powershell
-# systemctl restart docker
+~~~bash
+systemctl restart docker
 ~~~
 
 ### 1.2.5 cri-dockerd安装
@@ -242,10 +242,10 @@ systemctl enable --now cri-docker.socket
 
 ### 1.3.1  集群软件及版本说明
 
-|          | kubeadm                | kubelet                                       | kubectl                |
-| -------- | ---------------------- | --------------------------------------------- | ---------------------- |
-| 版本     | 1.24.X                 | 1.24.X                                        | 1.24.X                 |
-| 安装位置 | 集群所有主机           | 集群所有主机                                  | 集群所有主机           |
+|          | kubeadm     | kubelet                       | kubectl     |
+| -------- |-------------|-------------------------------|-------------|
+| 版本     | 1.26.X      | 1.26.X                        | 1.26.X      |
+| 安装位置 | 集群所有主机      | 集群所有主机                        | 集群所有主机      |
 | 作用     | 初始化集群、管理集群等 | 用于接收api-server指令，对pod生命周期进行管理 | 集群应用命令行管理工具 |
 
 
@@ -342,7 +342,7 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ~~~
 
-如果不添加--cri-socket选项，则会报错，内容如下：
+如果不添加--cri-socket选项，则会报错，内容如下：  
 Found multiple CRI endpoints on the host. Please define which one do you wish to use by setting the 'criSocket' field in the kubeadm configuration file: unix:///var/run/containerd/containerd.sock, unix:///var/run/cri-dockerd.sock
 To see the stack trace of this error execute with --v=5 or higher
 
@@ -352,35 +352,174 @@ kubeadm join 192.168.127.142:6443 --token c12af7.eccv488cyew0unrl \
 ```
 
 
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/tigera-operator.yaml
+### 1.3.7  集群应用客户端管理集群文件准备
+> master01执行
+~~~bash
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+ls /root/.kube/
+config
+~~~
+
+~~~bash
+[root@k8s-master01 ~]# export KUBECONFIG=/etc/kubernetes/admin.conf
+~~~
+
+### 1.3.8  集群网络准备
+
+> 使用calico部署集群网络
+>
+> 安装参考网址：https://projectcalico.docs.tigera.io/about/about-calico
+
+
+#### 1.3.8.1  calico安装
+> 使用calico部署集群网络  
+> 安装参考网址：https://projectcalico.docs.tigera.io/about/about-calico  
+> master01执行
+
+```shell
+# 下载operator资源清单文件
+wget https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/tigera-operator.yaml
+# 应用资源清单文件，创建operator
+kubectl create -f tigera-operator.yaml
+# 通过自定义资源方式安装
 wget https://raw.githubusercontent.com/projectcalico/calico/v3.24.5/manifests/custom-resources.yaml
-# 修改custom-resources.yaml  cidr: 10.224.0.0/16
+# 修改文件第13行，修改为使用kubeadm init ----pod-network-cidr对应的IP地址段  cidr: 10.224.0.0/16
+#  当node无法正常运行时，可考虑在此文件中添加相关内容。    
+#      nodeAddressAutodetectionV4:
+#        interface: ens.*
+
+# 应用资源清单文件
 kubectl create -f custom-resources.yaml
+```
 
-kubectl get ns
-NAME              STATUS   AGE
-calico-system     Active   25s
-default           Active   3h27m
-kube-node-lease   Active   3h27m
-kube-public       Active   3h27m
-kube-system       Active   3h27m
-tigera-operator   Active   58s
-
-
+~~~bash
+# 监视calico-sysem命名空间中pod运行情况
 watch kubectl get pods -n calico-system
-NAME                                       READY   STATUS    RESTARTS   AGE
-calico-kube-controllers-67df98bdc8-2j82t   1/1     Running   0          2m28s
-calico-node-2lrsb                          1/1     Running   0          2m29s
-calico-node-8fcds                          1/1     Running   0          2m29s
-calico-node-wbswq                          1/1     Running   0          2m29s
-calico-typha-5c7b6b55b-hb6z2               1/1     Running   0          2m20s
-calico-typha-5c7b6b55b-njpjt               1/1     Running   0          2m29s
+#NAME                                       READY   STATUS    RESTARTS   AGE
+#calico-kube-controllers-67df98bdc8-2j82t   1/1     Running   0          2m28s
+#calico-node-2lrsb                          1/1     Running   0          2m29s
+#calico-node-8fcds                          1/1     Running   0          2m29s
+#calico-node-wbswq                          1/1     Running   0          2m29s
+#calico-typha-5c7b6b55b-hb6z2               1/1     Running   0          2m20s
+#calico-typha-5c7b6b55b-njpjt               1/1     Running   0          2m29s
+~~~
+
+~~~bash
+# 查看kube-system命名空间中coredns状态，处于Running状态表明联网成功。
+kubectl get pods -n kube-system
+NAME                                   READY   STATUS    RESTARTS   AGE
+coredns-6d4b75cb6d-js5pl               1/1     Running   0          12h
+coredns-6d4b75cb6d-zm8pc               1/1     Running   0          12h
+etcd-k8s-master01                      1/1     Running   0          12h
+kube-apiserver-k8s-master01            1/1     Running   0          12h
+kube-controller-manager-k8s-master01   1/1     Running   0          12h
+kube-proxy-7nhr7                       1/1     Running   0          12h
+kube-proxy-fv4kr                       1/1     Running   0          12h
+kube-proxy-vv5vg                       1/1     Running   0          12h
+kube-scheduler-k8s-master01            1/1     Running   0          12h
+~~~
 
 
+#### 2.3.8.2  calico客户端安装
 
+~~~bash
+# 下载二进制文件
+curl -L https://github.com/projectcalico/calico/releases/download/v3.21.4/calicoctl-linux-amd64 -o calicoctl
+~~~
+
+~~~bash
+# 安装calicoctl
+mv calicoctl /usr/bin/
+
+# 为calicoctl添加可执行权限
+chmod +x /usr/bin/calicoctl
+
+# 查看添加权限后文件
+ls /usr/bin/calicoctl
+
+# 查看calicoctl版本
+calicoctl  version
+# Client Version:    v3.21.4
+# Git commit:        220d04c94
+# Cluster Version:   v3.21.4
+# Cluster Type:      typha,kdd,k8s,operator,bgp,kubeadm
+~~~
+
+~~~bash
+# 通过~/.kube/config连接kubernetes集群，查看已运行节点
+DATASTORE_TYPE=kubernetes KUBECONFIG=~/.kube/config calicoctl get nodes
+NAME
+master01
+~~~
+
+
+### 1.3.9  集群工作节点添加
+> 因容器镜像下载较慢，可能会导致报错，主要错误为没有准备好cni（集群网络插件），如有网络，请耐心等待即可。
+~~~bash
+kubeadm join 192.168.127.142:6443 --token c12af7.eccv488cyew0unrl \
+--discovery-token-ca-cert-hash sha256:6383e5198b6d054d3e3fd5a972a5dd2e024e2853decde14fcd690e3cb7c48f2d --cri-socket unix:///var/run/cri-dockerd.sock
+~~~
+
+~~~bash
+# 在master节点上操作，查看网络节点是否添加
+DATASTORE_TYPE=kubernetes KUBECONFIG=~/.kube/config calicoctl get nodes
+~~~
+NAME  
+master01  
+node01  
+node02  
+
+# 二、 验证集群可用性
+
+~~~bash
+# 查看所有的节点
 kubectl get nodes
-NAME       STATUS   ROLES           AGE     VERSION
-master01   Ready    control-plane   3h31m   v1.26.0
-node01     Ready    <none>          17m     v1.26.0
-node02     Ready    <none>          17m     v1.26.0
+~~~
+NAME           STATUS   ROLES           AGE   VERSION  
+k8s-master01   Ready    control-plane   12h   v1.26.0  
+k8s-worker01   Ready    <none>          12h   v1.26.0  
+k8s-worker02   Ready    <none>          12h   v1.26.0  
 
+
+~~~bash
+# 查看集群健康情况
+kubectl get cs
+~~~
+Warning: v1 ComponentStatus is deprecated in v1.19+  
+NAME                 STATUS    MESSAGE                         ERROR  
+controller-manager   Healthy   ok  
+scheduler            Healthy   ok  
+etcd-0               Healthy   {"health":"true","reason":""}  
+
+
+
+~~~bash
+# 查看kubernetes集群pod运行情况
+kubectl get pods -n kube-system
+~~~
+NAME                                   READY   STATUS    RESTARTS   AGE  
+coredns-6d4b75cb6d-js5pl               1/1     Running   0          12h  
+coredns-6d4b75cb6d-zm8pc               1/1     Running   0          12h  
+etcd-k8s-master01                      1/1     Running   0          12h  
+kube-apiserver-k8s-master01            1/1     Running   0          12h  
+kube-controller-manager-k8s-master01   1/1     Running   0          12h  
+kube-proxy-7nhr7                       1/1     Running   0          12h  
+kube-proxy-fv4kr                       1/1     Running   0          12h  
+kube-proxy-vv5vg                       1/1     Running   0          12h  
+kube-scheduler-k8s-master01            1/1     Running   0          12h  
+
+
+
+~~~bash
+# 再次查看calico-system命名空间中pod运行情况。
+kubectl get pods -n calico-system
+~~~
+NAME                                       READY   STATUS    RESTARTS   AGE  
+calico-kube-controllers-5b544d9b48-xgfnk   1/1     Running   0          12h  
+calico-node-7clf4                          1/1     Running   0          12h  
+calico-node-cjwns                          1/1     Running   0          12h  
+calico-node-hhr4n                          1/1     Running   0          12h  
+calico-typha-6cb6976b97-5lnpk              1/1     Running   0          12h  
+calico-typha-6cb6976b97-9w9s8              1/1     Running   0          12h
