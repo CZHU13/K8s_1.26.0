@@ -363,7 +363,7 @@ config
 ~~~
 
 ~~~bash
-[root@k8s-master01 ~]# export KUBECONFIG=/etc/kubernetes/admin.conf
+[root@master01 ~]# export KUBECONFIG=/etc/kubernetes/admin.conf
 ~~~
 
 ### 1.3.8  集群网络准备
@@ -412,13 +412,13 @@ kubectl get pods -n kube-system
 NAME                                   READY   STATUS    RESTARTS   AGE
 coredns-6d4b75cb6d-js5pl               1/1     Running   0          12h
 coredns-6d4b75cb6d-zm8pc               1/1     Running   0          12h
-etcd-k8s-master01                      1/1     Running   0          12h
-kube-apiserver-k8s-master01            1/1     Running   0          12h
-kube-controller-manager-k8s-master01   1/1     Running   0          12h
+etcd-master01                      1/1     Running   0          12h
+kube-apiserver-master01            1/1     Running   0          12h
+kube-controller-manager-master01   1/1     Running   0          12h
 kube-proxy-7nhr7                       1/1     Running   0          12h
 kube-proxy-fv4kr                       1/1     Running   0          12h
 kube-proxy-vv5vg                       1/1     Running   0          12h
-kube-scheduler-k8s-master01            1/1     Running   0          12h
+kube-scheduler-master01            1/1     Running   0          12h
 ~~~
 
 
@@ -478,9 +478,9 @@ node02
 kubectl get nodes
 ~~~
 NAME           STATUS   ROLES           AGE   VERSION  
-k8s-master01   Ready    control-plane   12h   v1.26.0  
-k8s-worker01   Ready    <none>          12h   v1.26.0  
-k8s-worker02   Ready    <none>          12h   v1.26.0  
+master01   Ready    control-plane   12h   v1.26.0  
+node01   Ready    <none>          12h   v1.26.0  
+node02   Ready    <none>          12h   v1.26.0  
 
 
 ~~~bash
@@ -502,13 +502,13 @@ kubectl get pods -n kube-system
 NAME                                   READY   STATUS    RESTARTS   AGE  
 coredns-6d4b75cb6d-js5pl               1/1     Running   0          12h  
 coredns-6d4b75cb6d-zm8pc               1/1     Running   0          12h  
-etcd-k8s-master01                      1/1     Running   0          12h  
-kube-apiserver-k8s-master01            1/1     Running   0          12h  
-kube-controller-manager-k8s-master01   1/1     Running   0          12h  
+etcd-master01                      1/1     Running   0          12h  
+kube-apiserver-master01            1/1     Running   0          12h  
+kube-controller-manager-master01   1/1     Running   0          12h  
 kube-proxy-7nhr7                       1/1     Running   0          12h  
 kube-proxy-fv4kr                       1/1     Running   0          12h  
 kube-proxy-vv5vg                       1/1     Running   0          12h  
-kube-scheduler-k8s-master01            1/1     Running   0          12h  
+kube-scheduler-master01            1/1     Running   0          12h  
 
 
 
