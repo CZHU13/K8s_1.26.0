@@ -39,6 +39,7 @@
 
 #### 1.1.3.3 主机名与IP地址解析
 
+~~~bash
 cat <<EOF >  /etc/hosts
 #!/bin/bash
 127.0.0.1  localhost localhost.localdomain localhost4 localhost4.localdomain4
@@ -47,6 +48,7 @@ cat <<EOF >  /etc/hosts
 192.168.127.144 node01
 192.168.127.145 node02
 EOF
+~~~
 
 > 所有集群主机均需要进行配置。
 #### 1.1.3.4  防火墙配置
